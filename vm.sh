@@ -124,8 +124,9 @@ qemu-system-x86_64 \
 -drive file="$SEED",format=raw,if=virtio \
 -netdev user,id=net0,hostfwd=tcp::${SSH_PORT}-:22 \
 -device virtio-net-pci,netdev=net0 \
--nographic \
+-display none \
 -daemonize
+
 
 # ---- WAIT ----
 echo
