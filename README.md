@@ -2,6 +2,6 @@
 ### Run This Installation For Creating VMS.
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/ArainCloud07/LXC-VPS-MAKER/refs/heads/main/lxc-installer.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/ArainCloud07/vms/refs/heads/main/vm.sh)
 ```
 
