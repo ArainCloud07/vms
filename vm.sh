@@ -115,6 +115,7 @@ EOF
 cloud-localds "$SEED" user-data meta-data
 
 # ---- START VM (NO GTK, NO CUT) ----
+# QEMU start
 qemu-system-x86_64 \
 -enable-kvm \
 -m "$VM_RAM" \
@@ -126,6 +127,7 @@ qemu-system-x86_64 \
 -device virtio-net-pci,netdev=net0 \
 -display none \
 -daemonize
+
 
 
 # ---- WAIT ----
