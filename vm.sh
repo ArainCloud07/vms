@@ -130,7 +130,6 @@ EOF
 
 cloud-localds "$SEED" user-data meta-data
 
-
 qemu-system-x86_64 \
 -enable-kvm \
 -m "$RAM" \
@@ -139,7 +138,7 @@ qemu-system-x86_64 \
 -drive file="$VM_PATH-seed.iso",format=raw,if=virtio \
 -netdev user,id=net0,hostfwd=tcp::$SSH_PORT-:22 \
 -device virtio-net-pci,netdev=net0 \
--nographic \
+-display none \
 -daemonize
 
 
