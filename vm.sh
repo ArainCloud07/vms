@@ -133,8 +133,11 @@ qemu-system-x86_64 \
 # ---- WAIT ----
 echo
 echo "⏳ VPS is booting. Waiting 60 seconds..."
-sleep 60
-echo "✅ VPS should be ready now!"
+for i in {60..1}; do
+    echo -ne "\r$i seconds remaining..."
+    sleep 1
+done
+echo -e "\n✅ VPS should be ready now!"
 
 # ---- FINAL ----
 echo
