@@ -131,16 +131,16 @@ EOF
 cloud-localds "$SEED" user-data meta-data
 
 
-nohup qemu-system-x86_64 \
+qemu-system-x86_64 \
 -enable-kvm \
--m "$VM_RAM" \
--smp "$VM_CPU" \
--cpu host \
--drive file="$IMG",format=qcow2,if=virtio \
--drive file="$SEED",format=raw,if=virtio \
--netdev user,id=net0,hostfwd=tcp::${SSH_PORT}-:22 \
+-m "$RAM" \
+-smp "$CPU" \
+-drive file="$VM_PATH.qcow2",format=qcow2,if=virtio \
+-drive file="$VM_PATH-seed.iso",format=raw,if=virtio \
+-netdev user,id=net0,hostfwd=tcp::$SSH_PORT-:22 \
 -device virtio-net-pci,netdev=net0 \
--daemonize >/dev/null 2>&1
+-nographic \
+-daemonize
 
 
 echo
