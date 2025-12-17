@@ -35,7 +35,7 @@ pause_menu() {
 show_menu() {
 clear
 echo "==============================================="
-echo "        ARAIN CLOUD VPS + TUNNEL MANAGER"
+echo "  Arain Cloud VM Manager And Tunneling Tool v5
 echo "==============================================="
 echo "1) Create VPS"
 echo "2) Start VPS"
