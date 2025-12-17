@@ -191,6 +191,7 @@ echo " Password : $PASSWORD"
 echo " Public IP: $HOST_IP"
 echo "==============================================="
 
+;;
 2) list_vms; read -p "VPS Name: " V; systemctl start arain-$V; pause_menu ;;
 3) list_vms; read -p "VPS Name: " V; systemctl stop arain-$V; pause_menu ;;
 4) list_vms; read -p "VPS Name: " V; systemctl stop arain-$V; rm -f "$VM_DIR/$V.qcow2" "$VM_DIR/$V-seed.iso" "$SERVICE_DIR/arain-$V.service"; systemctl daemon-reload; pause_menu ;;
