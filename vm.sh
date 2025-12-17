@@ -1,33 +1,63 @@
 #!/bin/bash
 set -e
 
-# ==================================================
-#   ARAIN CLOUD VPS MANAGER – FINAL FULL VERSION
-# ==================================================
-
+# ================= CONFIG =================
 VM_DIR="/opt/arain-vms"
 SERVICE_DIR="/etc/systemd/system"
-TUNNEL_FILE="/opt/arain-vms/tunnels.db"
+FW_DB="$VM_DIR/forwards.db"
+REMOTE_HOST="86.96.192.78"
+REMOTE_USER="root"
+SSH_PORT_DEFAULT="65535"
+LOCAL_SHOW_IP="127.0.0.1"
 
 mkdir -p "$VM_DIR"
-touch "$TUNNEL_FILE"
+touch "$FW_DB"
 
-clear
-echo "==============================================="
-echo "        ARAIN CLOUD VM MANAGER – FINAL          "
-echo "==============================================="
-
-# ---- ROOT CHECK ----
 [ "$EUID" -ne 0 ] && { echo "Run as root"; exit 1; }
-
 export DEBIAN_FRONTEND=noninteractive
 
-# ==================================================
-list_vms() {
-  ls "$VM_DIR"/*.qcow2 2>/dev/null | sed 's#.*/##;s#.qcow2##' || echo "No VPS found"
+# ================= COLORS =================
+C_RESET='\033[0m'
+C_RED='\033[0;31m'
+C_GREEN='\033[0;32m'
+C_YELLOW='\033[0;33m'
+C_BLUE='\033[0;34m'
+C_CYAN='\033[0;36m'
+C_WHITE='\033[1;37m'
+
+# ================= FUNCTIONS =================
+pause_menu() {
+  echo ""
+  read -p "Press Enter To Return To The Menu..."
+  clear
 }
 
-# ==================================================
+show_menu() {
+clear
+echo "==============================================="
+echo "        ARAIN CLOUD VPS + TUNNEL MANAGER"
+echo "==============================================="
+echo "1) Create VPS"
+echo "2) Start VPS"
+echo "3) Stop VPS"
+echo "4) Delete VPS"
+echo "5) List VPS"
+echo "6) Add Tunnel"
+echo "7) List Tunnels"
+echo "8) Delete Tunnel"
+read -p "Select option [1-8]: " ACTION
+}
+
+list_vms() {
+  echo -e "${C_BLUE}Available VPS:${C_RESET}"
+  for f in "$VM_DIR"/*.qcow2; do
+    [ -e "$f" ] || continue
+    name=$(basename "$f" .qcow2)
+    status=$(systemctl is-active "arain-$name" 2>/dev/null || echo inactive)
+    echo -e "VPS: ${C_CYAN}$name${C_RESET} | Status: ${C_GREEN}$status${C_RESET}"
+  done
+}
+
 create_service() {
 cat > "$SERVICE_DIR/arain-$VM_NAME.service" <<EOF
 [Unit]
@@ -37,17 +67,16 @@ After=network.target
 [Service]
 Type=forking
 ExecStart=/usr/bin/qemu-system-x86_64 \\
-  -enable-kvm \\
-  -m $VM_RAM \\
-  -smp $VM_CPU \\
-  -cpu host \\
-  -drive file=$IMG,format=qcow2,if=virtio \\
-  -drive file=$SEED,format=raw,if=virtio \\
-  -netdev user,id=net0,hostfwd=tcp::${SSH_PORT}-:22 \\
-  -device virtio-net-pci,netdev=net0 \\
-  -display none \\
-  -daemonize
-
+-enable-kvm \\
+-m $VM_RAM \\
+-smp $VM_CPU \\
+-cpu host \\
+-drive file=$IMG,format=qcow2,if=virtio \\
+-drive file=$SEED,format=raw,if=virtio \\
+-netdev user,id=net0,hostfwd=tcp::${SSH_PORT}-:22 \\
+-device virtio-net-pci,netdev=net0 \\
+-display none \\
+-daemonize
 ExecStop=/usr/bin/pkill -f "$IMG"
 RemainAfterExit=yes
 
@@ -59,58 +88,48 @@ systemctl daemon-reload
 systemctl enable arain-$VM_NAME
 }
 
-# ==================================================
-echo "1) Create VPS"
-echo "2) Start VPS"
-echo "3) Stop VPS"
-echo "4) Delete VPS"
-echo "5) List VPS"
-echo "6) Create Tunnel"
-echo "7) List Tunnels"
-echo "8) Delete Tunnel"
-echo "9) Delete ALL Tunnels"
-read -p "Select option [1-9]: " ACTION
+# ================= MAIN LOOP =================
+while true; do
+show_menu
 
 case "$ACTION" in
 
-# ================= CREATE VPS =================
 1)
-  apt-get update -y
-  apt-get install -y qemu-system-x86 qemu-utils cloud-image-utils wget curl openssl
+apt-get update -y
+apt-get install -y qemu-system-x86 qemu-utils cloud-image-utils wget curl openssl
 
-  read -p "VPS Name: " VM_NAME
-  read -p "RAM MB [2048]: " VM_RAM
-  read -p "CPU Cores [2]: " VM_CPU
-  read -p "Disk GB [20]: " VM_DISK
+read -p "VPS Name: " VM_NAME
+read -p "RAM MB [2048]: " VM_RAM
+read -p "CPU Cores [2]: " VM_CPU
+read -p "Disk GB [20]: " VM_DISK
 
-  VM_RAM=${VM_RAM:-2048}
-  VM_CPU=${VM_CPU:-2}
-  VM_DISK=${VM_DISK:-20}
+VM_RAM=${VM_RAM:-2048}
+VM_CPU=${VM_CPU:-2}
+VM_DISK=${VM_DISK:-20}
 
-  echo "1) Ubuntu 22.04"
-  echo "2) Debian 12"
-  read -p "OS Choice [1]: " OS_CHOICE
-  OS_CHOICE=${OS_CHOICE:-1}
+echo "1) Ubuntu 22.04"
+echo "2) Debian 12"
+read -p "OS Choice [1]: " OS_CHOICE
+OS_CHOICE=${OS_CHOICE:-1}
 
-  if [ "$OS_CHOICE" -eq 2 ]; then
-    IMG_URL="https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-generic-amd64.qcow2"
-    OS_NAME="Debian 12"
-  else
-    IMG_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
-    OS_NAME="Ubuntu 22.04"
-  fi
+if [ "$OS_CHOICE" -eq 2 ]; then
+  IMG_URL="https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-generic-amd64.qcow2"
+  OS_NAME="Debian 12"
+else
+  IMG_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
+  OS_NAME="Ubuntu 22.04"
+fi
 
-  IMG="$VM_DIR/$VM_NAME.qcow2"
-  SEED="$VM_DIR/$VM_NAME-seed.iso"
+IMG="$VM_DIR/$VM_NAME.qcow2"
+SEED="$VM_DIR/$VM_NAME-seed.iso"
 
-  PASSWORD="$(openssl rand -base64 12)"
-  SSH_PORT="$(shuf -i 30000-60000 -n 1)"
-  HOST_IP="$(curl -4 -s ifconfig.me)"
+PASSWORD="$(openssl rand -base64 12)"
+SSH_PORT="$(shuf -i 30000-60000 -n 1)"
+HOST_IP="$(curl -4 -s ifconfig.me)"
 
-  wget -O "$IMG" "$IMG_URL"
-  qemu-img resize "$IMG" "${VM_DISK}G"
+wget -O "$IMG" "$IMG_URL"
+qemu-img resize "$IMG" "${VM_DISK}G"
 
-# ---------- CLOUD INIT ----------
 cat > user-data <<EOF
 #cloud-config
 disable_root: false
@@ -121,28 +140,29 @@ chpasswd:
   expire: false
 
 runcmd:
-  - sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
-  - sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
-  - systemctl restart ssh || systemctl restart sshd
-
-  - chmod -x /etc/update-motd.d/*
-  - |
-    cat << 'MOTD' > /etc/update-motd.d/00-arain
-    #!/bin/bash
-    echo ""
-    echo " █████╗ ██████╗  █████╗ ██╗███╗   ██╗"
-    echo "██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║"
-    echo "███████║██████╔╝███████║██║██╔██╗ ██║"
-    echo "██╔══██║██╔══██╗██╔══██║██║██║╚██╗██║"
-    echo "██║  ██║██║  ██║██║  ██║██║██║ ╚████║"
-    echo "╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝"
-    echo ""
-    echo " 🚀 Welcome to Arain Cloud Datacenter"
-    echo " 🌐 https://arain.cloud"
-    echo " 📧 support@arain.cloud"
-    echo ""
-    MOTD
-  - chmod +x /etc/update-motd.d/00-arain
+ - sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+ - sed -i 's/^#\\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+ - systemctl restart ssh || systemctl restart sshd
+ - chmod -x /etc/update-motd.d/*
+ - |
+   cat << 'MOTD' > /etc/update-motd.d/00-arain
+   #!/bin/bash
+   clear
+   echo ""
+   echo " █████╗ ██████╗  █████╗ ██╗███╗   ██╗"
+   echo "██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║"
+   echo "███████║██████╔╝███████║██║██╔██╗ ██║"
+   echo "██╔══██║██╔══██╗██╔══██║██║██║╚██╗██║"
+   echo "██║  ██║██║  ██║██║  ██║██║██║ ╚████║"
+   echo "╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝"
+   echo ""
+   echo " 🚀 Welcome to Arain Cloud Datacenter"
+   echo " 🌐 Website : https://arain.cloud"
+   echo " 📧 Support : support@arain.cloud"
+   echo " 🖥 VPS Private IP : \$(hostname -I | awk '{print \$1}')"
+   echo ""
+   MOTD
+ - chmod +x /etc/update-motd.d/00-arain
 EOF
 
 cat > meta-data <<EOF
@@ -155,7 +175,10 @@ create_service
 systemctl start arain-$VM_NAME
 
 echo "⏳ VPS booting... waiting 60 seconds"
-for i in {60..1}; do echo -ne "\r$i seconds remaining"; sleep 1; done
+for i in {60..1}; do
+  echo -ne "\r$i seconds remaining"
+  sleep 1
+done
 echo -e " ✅ VPS should be ready now!"
 
 echo -e "\n==============================================="
@@ -164,30 +187,87 @@ echo " Name     : $VM_NAME"
 echo " OS       : $OS_NAME"
 echo " SSH CMD  : ssh root@$HOST_IP -p $SSH_PORT"
 echo " Password : $PASSWORD"
+echo " Public IP: $HOST_IP"
 echo "==============================================="
+
 ;;
 
-# ================= START =================
-2) list_vms; read -p "VPS Name: " VM_NAME; systemctl start arain-$VM_NAME ;;
-3) list_vms; read -p "VPS Name: " VM_NAME; systemctl stop arain-$VM_NAME ;;
-4) list_vms; read -p "VPS Name: " VM_NAME;
-   systemctl stop arain-$VM_NAME || true
-   systemctl disable arain-$VM_NAME || true
-   rm -f "$SERVICE_DIR/arain-$VM_NAME.service" "$VM_DIR/$VM_NAME.qcow2" "$VM_DIR/$VM_NAME-seed.iso"
-   systemctl daemon-reload ;;
-5) list_vms ;;
+2) list_vms; read -p "VPS Name: " V; systemctl start arain-$V; pause_menu ;;
+3) list_vms; read -p "VPS Name: " V; systemctl stop arain-$V; pause_menu ;;
+4) list_vms; read -p "VPS Name: " V; systemctl stop arain-$V; rm -f "$VM_DIR/$V.qcow2" "$VM_DIR/$V-seed.iso" "$SERVICE_DIR/arain-$V.service"; systemctl daemon-reload; pause_menu ;;
+5) list_vms; pause_menu ;;
 
-# ================= TUNNELS =================
-6) read -p "Local Port: " LP; read -p "Remote Port: " RP;
-   ssh -fN -R ${RP}:localhost:${LP} root@localhost
-   echo "$LP:$RP" >> "$TUNNEL_FILE"
-   echo "Tunnel created $LP -> $RP" ;;
+6)
+read -p "Local Port to expose: " LOCAL_PORT
+read -p "Remote Port on tunnel host: " REMOTE_PORT
 
-7) cat "$TUNNEL_FILE" ;;
-8) read -p "Remote Port: " RP;
-   pkill -f "R ${RP}"
-   sed -i "/:$RP/d" "$TUNNEL_FILE" ;;
-9) pkill ssh || true; > "$TUNNEL_FILE" ;;
+SERVICE_NAME="tunnel-${REMOTE_PORT}.service"
+SERVICE_FILE="${SERVICE_DIR}/${SERVICE_NAME}"
 
-*) echo "Invalid option" ;;
+[[ -f "$SERVICE_FILE" ]] && echo "Tunnel already exists" && pause_menu && continue
+
+cat > "$SERVICE_FILE" <<EOF
+[Unit]
+Description=SSH Tunnel ${REMOTE_PORT}
+After=network-online.target
+
+[Service]
+ExecStart=/usr/bin/ssh -N \\
+-o ExitOnForwardFailure=yes \\
+-o ServerAliveInterval=30 \\
+-o ServerAliveCountMax=3 \\
+-o StrictHostKeyChecking=no \\
+-R ${REMOTE_PORT}:localhost:${LOCAL_PORT} \\
+${REMOTE_USER}@${REMOTE_HOST} -p ${SSH_PORT_DEFAULT}
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable "$SERVICE_NAME"
+systemctl start "$SERVICE_NAME"
+
+echo "Tunnel created & persistent"
+echo "Local  : ${LOCAL_SHOW_IP}:${LOCAL_PORT}"
+echo "Remote : ${REMOTE_HOST}:${REMOTE_PORT}"
+pause_menu
+;;
+
+7)
+echo -e "${C_BLUE}Active tunnels:${C_RESET}\n"
+found=0
+for s in ${SERVICE_DIR}/tunnel-*.service; do
+  [ -e "$s" ] || continue
+  found=1
+  port=$(basename "$s" | sed 's/tunnel-//;s/.service//')
+  status=$(systemctl is-active tunnel-$port)
+  echo -e "Remote ${C_CYAN}${REMOTE_HOST}:${port}${C_RESET} → Local ${LOCAL_SHOW_IP} → ${status}"
+done
+[ $found -eq 0 ] && echo "No tunnels found"
+pause_menu
+;;
+
+8)
+echo "Existing tunnels:"
+for s in ${SERVICE_DIR}/tunnel-*.service; do
+  [ -e "$s" ] || { echo "No tunnels found"; pause_menu; continue 2; }
+  echo " - $(basename "$s" | sed 's/tunnel-//;s/.service//')"
+done
+read -p "Remote Port to delete: " DP
+systemctl stop tunnel-$DP 2>/dev/null || true
+systemctl disable tunnel-$DP 2>/dev/null || true
+rm -f "${SERVICE_DIR}/tunnel-$DP.service"
+systemctl daemon-reload
+echo "Tunnel removed"
+pause_menu
+;;
+
+*)
+echo "Invalid option"
+pause_menu
+;;
 esac
+done
