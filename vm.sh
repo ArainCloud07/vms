@@ -45,6 +45,7 @@ echo "5) List VPS"
 echo "6) Add Tunnel"
 echo "7) List Tunnels"
 echo "8) Delete Tunnel"
+echo "0) Exit"
 read -p "Select option [1-8]: " ACTION
 }
 
@@ -248,6 +249,11 @@ for s in ${SERVICE_DIR}/tunnel-*.service; do
 done
 [ $found -eq 0 ] && echo "No tunnels found"
 pause_menu
+;;
+
+0)
+echo "Bye 👋 Exiting Arain Cloud Manager"
+exit 0
 ;;
 
 8)
