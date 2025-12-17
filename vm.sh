@@ -65,10 +65,10 @@ echo "2) Start VPS"
 echo "3) Stop VPS"
 echo "4) Delete VPS"
 echo "5) List VPS"
-echo "6) Create SSH Tunnel"
-echo "7) List SSH Tunnels"
-echo "8) Delete SSH Tunnel"
-echo "9) Delete ALL SSH Tunnels"
+echo "6) Create Tunnel"
+echo "7) List Tunnels"
+echo "8) Delete Tunnel"
+echo "9) Delete ALL Tunnels"
 read -p "Select option [1-9]: " ACTION
 
 case "$ACTION" in
@@ -156,9 +156,9 @@ systemctl start arain-$VM_NAME
 
 echo "⏳ VPS booting... waiting 60 seconds"
 for i in {60..1}; do echo -ne "\r$i seconds remaining"; sleep 1; done
-
+echo -e " ✅ VPS should be ready now!"
 echo -e "\n==============================================="
-echo " VPS READY"
+echo " VPS CREATED SUCCESSFULLY "
 echo " Name     : $VM_NAME"
 echo " OS       : $OS_NAME"
 echo " SSH CMD  : ssh root@$HOST_IP -p $SSH_PORT"
