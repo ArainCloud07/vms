@@ -190,7 +190,6 @@ echo " SSH CMD  : ssh root@$HOST_IP -p $SSH_PORT"
 echo " Password : $PASSWORD"
 echo " Public IP: $HOST_IP"
 echo "==============================================="
-
 ;;
 
 2) list_vms; read -p "VPS Name: " V; systemctl start arain-$V; pause_menu ;;
