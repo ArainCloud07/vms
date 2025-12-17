@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# ================= CONFIG =================
+
 VM_DIR="/opt/arain-vms"
 SERVICE_DIR="/etc/systemd/system"
 FW_DB="$VM_DIR/forwards.db"
@@ -16,7 +16,7 @@ touch "$FW_DB"
 [ "$EUID" -ne 0 ] && { echo "Run as root"; exit 1; }
 export DEBIAN_FRONTEND=noninteractive
 
-# ================= COLORS =================
+
 C_RESET='\033[0m'
 C_RED='\033[0;31m'
 C_GREEN='\033[0;32m'
@@ -25,7 +25,7 @@ C_BLUE='\033[0;34m'
 C_CYAN='\033[0;36m'
 C_WHITE='\033[1;37m'
 
-# ================= FUNCTIONS =================
+
 pause_menu() {
   echo ""
   read -p "Press Enter To Return To The Menu..."
