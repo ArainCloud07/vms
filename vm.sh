@@ -157,6 +157,7 @@ systemctl start arain-$VM_NAME
 echo "⏳ VPS booting... waiting 60 seconds"
 for i in {60..1}; do echo -ne "\r$i seconds remaining"; sleep 1; done
 echo -e " ✅ VPS should be ready now!"
+
 echo -e "\n==============================================="
 echo " VPS CREATED SUCCESSFULLY "
 echo " Name     : $VM_NAME"
