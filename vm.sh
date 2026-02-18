@@ -2,11 +2,11 @@
 set -e
 
 # ==================================================
-#   ARAIN CLOUD VM MANAGER – FULL VERSION
+#   ARYN CLOUD VM MANAGER – FULL VERSION
 #   Create | Start | Stop | Delete | Auto-Start
 # ==================================================
 
-VM_DIR="/opt/arain-vms"
+VM_DIR="/opt/aryn-vms"
 SERVICE_DIR="/etc/systemd/system"
 
 # ---- ROOT CHECK ----
@@ -21,9 +21,9 @@ list_vms() {
 }
 
 create_service() {
-cat > "$SERVICE_DIR/arain-$VM_NAME.service" <<EOF
+cat > "$SERVICE_DIR/aryn-$VM_NAME.service" <<EOF
 [Unit]
-Description=Arain Cloud VPS $VM_NAME
+Description=Aryn Cloud VPS $VM_NAME
 After=network.target
 
 [Service]
@@ -49,14 +49,14 @@ EOF
 
 systemctl daemon-reexec
 systemctl daemon-reload
-systemctl enable arain-$VM_NAME
+systemctl enable aryn-$VM_NAME
 }
 
 # ---- MENU LOOP ----
 while true; do
   clear
   echo "==============================================="
-  echo "        ARAIN CLOUD VM MANAGER – VPS CONTROL    "
+  echo "        ARYN CLOUD VM MANAGER – VPS CONTROL    "
   echo "==============================================="
   echo
   echo "1) Create VPS"
@@ -128,23 +128,23 @@ runcmd:
 
   - chmod -x /etc/update-motd.d/*
   - |
-    cat << 'MOTD' > /etc/update-motd.d/00-arain
+    cat << 'MOTD' > /etc/update-motd.d/00-aryn
     #!/bin/bash
     echo ""
-    echo " █████╗ ██████╗  █████╗ ██╗███╗   ██╗"
-    echo "██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║"
-    echo "███████║██████╔╝███████║██║██╔██╗ ██║"
-    echo "██╔══██║██╔══██╗██╔══██║██║██║╚██╗██║"
-    echo "██║  ██║██║  ██║██║  ██║██║██║ ╚████║"
-    echo "╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝"
+    echo " █████╗ ██████╗ ██╗   ██╗███╗   ██╗"
+    echo "██╔══██╗██╔══██╗╚██╗ ██╔╝████╗  ██║"
+    echo "███████║██████╔╝ ╚████╔╝ ██╔██╗ ██║"
+    echo "██╔══██║██╔══██╗  ╚██╔╝  ██║╚██╗██║"
+    echo "██║  ██║██║  ██║   ██║   ██║ ╚████║"
+    echo "╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═══╝"
     echo ""
-    echo " 🚀 Welcome to Arain Cloud Datacenter"
-    echo " 🌐 Website : https://arain.cloud"
-    echo " 📧 Support : support@arain.cloud"
+    echo " 🚀 Welcome to Aryn Cloud Datacenter"
+    echo " 🌐 Website : https://aryncloud.in"
+    echo " 📧 Support : support@aryncloud.in"
     echo " 🖥 VPS Private IP : \$(hostname -I | awk '{print \$1}')"
     echo ""
     MOTD
-  - chmod +x /etc/update-motd.d/00-arain
+  - chmod +x /etc/update-motd.d/00-aryn
 EOF
 
     cat > meta-data <<EOF
@@ -155,7 +155,7 @@ EOF
     cloud-localds "$SEED" user-data meta-data
 
     create_service
-    systemctl start arain-$VM_NAME
+    systemctl start aryn-$VM_NAME
 
     echo
     echo "⏳ VPS is booting. Waiting 60 seconds..."
@@ -181,7 +181,7 @@ EOF
     clear
     echo "Available VPS:"; list_vms
     read -p "VPS Name: " VM_NAME
-    systemctl start arain-$VM_NAME
+    systemctl start aryn-$VM_NAME
     echo "VPS $VM_NAME started"
     read -p "Press Enter to return to the menu..."
     ;;
@@ -191,7 +191,7 @@ EOF
     clear
     echo "Available VPS:"; list_vms
     read -p "VPS Name: " VM_NAME
-    systemctl stop arain-$VM_NAME
+    systemctl stop aryn-$VM_NAME
     echo "VPS $VM_NAME stopped"
     read -p "Press Enter to return to the menu..."
     ;;
@@ -201,9 +201,9 @@ EOF
     clear
     echo "Available VPS:"; list_vms
     read -p "VPS Name to DELETE: " VM_NAME
-    systemctl stop arain-$VM_NAME || true
-    systemctl disable arain-$VM_NAME || true
-    rm -f "$SERVICE_DIR/arain-$VM_NAME.service"
+    systemctl stop aryn-$VM_NAME || true
+    systemctl disable aryn-$VM_NAME || true
+    rm -f "$SERVICE_DIR/aryn-$VM_NAME.service"
     rm -f "$VM_DIR/$VM_NAME.qcow2" "$VM_DIR/$VM_NAME-seed.iso"
     systemctl daemon-reload
     echo "VPS $VM_NAME deleted completely"
@@ -219,12 +219,12 @@ EOF
     for img in "$VM_DIR"/*.qcow2; do
       [ -e "$img" ] || { echo "No VPS found"; break; }
       VM_NAME=$(basename "$img" .qcow2)
-      if systemctl is-active --quiet arain-$VM_NAME; then
+      if systemctl is-active --quiet aryn-$VM_NAME; then
         STATUS="RUNNING"
       else
         STATUS="STOPPED"
       fi
-      PORT=$(grep -o "hostfwd=tcp::[0-9]*" "$SERVICE_DIR/arain-$VM_NAME.service" 2>/dev/null | cut -d: -f4)
+      PORT=$(grep -o "hostfwd=tcp::[0-9]*" "$SERVICE_DIR/aryn-$VM_NAME.service" 2>/dev/null | cut -d: -f4)
       printf "%-20s | %-8s | %s\n" "$VM_NAME" "$STATUS" "$PORT"
     done
     echo "==============================================="
