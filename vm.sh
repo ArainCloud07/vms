@@ -3,6 +3,7 @@ set -e
 
 # ==================================================
 #   ARYN CLOUD VM MANAGER – FULL VERSION
+#   Create | Start | Stop | Delete | Auto-Start
 # ==================================================
 
 VM_DIR="/opt/aryn-vms"
@@ -51,24 +52,29 @@ systemctl enable aryn-$VM_NAME
 while true; do
   clear
   echo "==============================================="
-  echo "        ARYN CLOUD VM MANAGER"
+  echo "        ARYN CLOUD VM MANAGER – VPS CONTROL    "
   echo "==============================================="
+  echo
   echo "1) Create VPS"
   echo "2) Start VPS"
   echo "3) Stop VPS"
   echo "4) Delete VPS"
   echo "5) List VPS"
   echo "0) Exit"
-  read -p "Select option: " ACTION
+  echo
+  read -p "Select option [0-5]: " ACTION
 
   case "$ACTION" in
 
+  # ================= CREATE VPS =================
   1)
+    clear
+    echo "[+] Installing dependencies..."
     apt-get update -y
     apt-get install -y qemu-system-x86 qemu-utils cloud-image-utils wget curl openssl
 
     read -p "VPS Name: " VM_NAME
-    VM_NAME=${VM_NAME:-vm-$(date +%s)}
+    VM_NAME=${VM_NAME:-aryn-$(date +%s)}
 
     read -p "RAM MB [2048]: " VM_RAM
     VM_RAM=${VM_RAM:-2048}
@@ -79,9 +85,9 @@ while true; do
     read -p "Disk GB [20]: " VM_DISK
     VM_DISK=${VM_DISK:-20}
 
-    echo "1) Ubuntu 22.04"
-    echo "2) Debian 12"
-    read -p "Choice [1]: " OS_CHOICE
+    echo "1) Ubuntu 22.04 Jammy"
+    echo "2) Debian 12 Bookworm"
+    read -p "OS Choice [1]: " OS_CHOICE
     OS_CHOICE=${OS_CHOICE:-1}
 
     if [ "$OS_CHOICE" -eq 2 ]; then
@@ -99,6 +105,7 @@ while true; do
     SSH_PORT="$(shuf -i 30000-60000 -n 1)"
     HOST_IP="$(curl -4 -s ifconfig.me)"
 
+    echo "[+] Downloading OS image..."
     wget -O "$IMG" "$IMG_URL"
     qemu-img resize "$IMG" "${VM_DISK}G"
 
@@ -123,26 +130,52 @@ EOF
     systemctl start aryn-$VM_NAME
 
     echo
-    echo "VPS CREATED"
-    echo "Name: $VM_NAME"
-    echo "SSH: ssh root@$HOST_IP -p $SSH_PORT"
-    echo "Password: $PASSWORD"
-    read -p "Press Enter..."
+    echo "⏳ VPS is booting. Waiting 60 seconds..."
+    for i in {60..1}; do
+      echo -ne "\r$i seconds remaining..."
+      sleep 1
+    done
+    echo -e "\n✅ VPS should be ready now!"
+    echo
+
+    echo "==============================================="
+    echo "        VPS CREATED SUCCESSFULLY 🚀           "
+    echo "==============================================="
+    echo " Name     : $VM_NAME"
+    echo " OS       : $OS_NAME"
+    echo " SSH CMD  : ssh root@$HOST_IP -p $SSH_PORT"
+    echo " Password : $PASSWORD"
+    echo "==============================================="
+    echo
+    read -p "Press Enter to return to menu..."
     ;;
 
+  # ================= START VPS =================
   2)
+    clear
+    echo "Available VPS:"
     list_vms
     read -p "VPS Name: " VM_NAME
     systemctl start aryn-$VM_NAME
+    echo "Started."
+    read -p "Press Enter..."
     ;;
 
+  # ================= STOP VPS =================
   3)
+    clear
+    echo "Available VPS:"
     list_vms
     read -p "VPS Name: " VM_NAME
     systemctl stop aryn-$VM_NAME
+    echo "Stopped."
+    read -p "Press Enter..."
     ;;
 
+  # ================= DELETE VPS =================
   4)
+    clear
+    echo "Available VPS:"
     list_vms
     read -p "Delete VPS: " VM_NAME
     systemctl stop aryn-$VM_NAME 2>/dev/null || true
@@ -150,17 +183,23 @@ EOF
     rm -f "$SERVICE_DIR/aryn-$VM_NAME.service"
     rm -f "$VM_DIR/$VM_NAME.qcow2" "$VM_DIR/$VM_NAME-seed.iso"
     systemctl daemon-reload
-    echo "Deleted."
+    echo "Deleted successfully."
     read -p "Press Enter..."
     ;;
 
+  # ================= LIST VPS =================
   5)
+    clear
+    echo "==============================================="
+    echo " VPS LIST (Name | Status)"
+    echo "==============================================="
     for img in "$VM_DIR"/*.qcow2; do
       [ -e "$img" ] || { echo "No VPS found"; break; }
       VM_NAME=$(basename "$img" .qcow2)
       systemctl is-active --quiet aryn-$VM_NAME && STATUS="RUNNING" || STATUS="STOPPED"
-      echo "$VM_NAME  |  $STATUS"
+      printf "%-25s | %s\n" "$VM_NAME" "$STATUS"
     done
+    echo "==============================================="
     read -p "Press Enter..."
     ;;
 
